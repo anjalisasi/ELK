@@ -1,0 +1,64 @@
+- name: Install jenkins
+  gather_facts: No
+  hosts: dockerservers  #ansible host inventory containing the list of servers where docker needs to be installed
+
+  tasks:
+
+    - name: Install java   #install the 2 pre-requisites for docker instalation (device-mapper-persistent data and lvm2)
+      yum:
+        name: java-1.8.0-openjdk
+        state: present
+      become:  yes
+
+    - name: Add Jenkins repo
+      get_url:
+        url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+      become: yes
+
+    - name: import jenkins key
+      rpm_key:
+        state: present
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+      become: yes
+
+    - name: Install Jenkins
+      package:
+        name: jenkins
+        state: latest
+      become: yes
+
+    - name: Start jenkins
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+      become: yes
+    
+    
+    - name: Open Firewall Port
+      firewalld:
+        zone: public
+        port: 8080/tcp
+        permanent: true
+        state: enabled
+        immediate: true
+      become: yes
+
+
+    - name: sleep for 30 seconds and continue with play
+      wait_for: timeout=30
+      delegate_to: localhost
+      become: yes
+
+    - name: init password jenkin
+      shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      changed_when: false
+      register: result
+      become: yes
+
+    - name: print init password jenkins
+      debug:
+        var: result.stdout
+      become: yes
+   

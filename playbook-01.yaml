@@ -1,0 +1,54 @@
+---
+- name: Install docker
+  gather_facts: No
+  hosts: dockerservers  #ansible host inventory containing the list of servers where docker needs to be installed
+
+  tasks:
+    
+    - name: Install device-mapper-persistent-data   #install the 2 pre-requisites for docker instalation (device-mapper-persistent data and lvm2)
+      yum:
+        name: device-mapper-persistent-data
+        state: latest
+      become:  yes
+        
+    - name: Install lvm2
+      yum:
+        name: lvm2
+        state: latest
+      become:  yes
+
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docer-ce.repo
+      become: yes
+
+    - name: Install Docker
+      package:
+        name: docker-ce
+        state: latest
+      become: yes
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      become: yes
+
+    - name: Add user to docker group    #adding the user to the docker group in order to execute docker commands without "sudo"
+      user:
+        name: ansible
+        groups: docker
+        append: yes
+      become: yes
+
+    - name: Install docker compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/1.25.1-rc1/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: 0777
+      become: yes
+
+
+
